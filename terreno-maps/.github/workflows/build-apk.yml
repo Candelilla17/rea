@@ -24,13 +24,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build debug APK
+      - name: Build debug APK (SDK preinstalado en el runner)
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK
