@@ -31,9 +31,11 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.rea.terreno.data.Store;
 import com.rea.terreno.map.Coords;
+import com.rea.terreno.map.Symbols;
 import com.rea.terreno.map.TileSources;
 import com.rea.terreno.trip.GpxExporter;
 import com.rea.terreno.trip.GpxImporter;
+import com.rea.terreno.trip.KmlImporter;
 import com.rea.terreno.trip.TripRecorder;
 
 import org.osmdroid.config.Configuration;
@@ -54,6 +56,8 @@ import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider;
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -128,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
         redrawAll();
         requestPerms();
         updateRefPanel();
+        handleIncoming(getIntent());
     }
 
     private void setupOverlays() {
@@ -162,6 +167,13 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.toolbar_menu, menu);
         return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem rec = menu.findItem(R.id.action_record);
+        if (rec != null) rec.setTitle(recorder.isRecording() ? "Detener" : "Grabar");
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -223,35 +235,63 @@ public class MainActivity extends AppCompatActivity {
                 lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, recorder);
             } catch (SecurityException ignored) {}
             showStatus("● REC iniciado");
+            invalidateOptionsMenu();
         } else {
             recorder.stop();
             try { lm.removeUpdates(recorder); } catch (SecurityException ignored) {}
-            if (recorder.getPoints().size() > 1) {
-                Store.NamedPath p = new Store.NamedPath(
-                        "Recorrido " + (count("track") + 1), "track");
-                p.points.addAll(recorder.getPoints());
-                store.paths.add(p);
-                store.save(this);
-            }
+            invalidateOptionsMenu();
+            final List<GeoPoint> pts = new ArrayList<>(recorder.getPoints());
             if (liveTrack != null) { map.getOverlays().remove(liveTrack); liveTrack = null; }
             statusPanel.setVisibility(TextView.GONE);
-            redrawAll();
-            Toast.makeText(this, "Recorrido guardado", Toast.LENGTH_SHORT).show();
+            if (pts.size() > 1) {
+                final double meters = recorder.getTotalMeters();
+                final EditText in = new EditText(this);
+                in.setText("Recorrido " + (count("track") + 1));
+                new AlertDialog.Builder(this)
+                        .setTitle("Guardar track")
+                        .setMessage(String.format(Locale.US,
+                                "%.0f m · %d puntos", meters, pts.size()))
+                        .setView(in)
+                        .setPositiveButton("Guardar", (d, w) -> {
+                            Store.NamedPath p = new Store.NamedPath(in.getText().toString(), "track");
+                            p.points.addAll(pts);
+                            store.paths.add(p);
+                            store.save(this);
+                            redrawAll();
+                            Toast.makeText(this, "Track guardado", Toast.LENGTH_SHORT).show();
+                        })
+                        .setNegativeButton("Descartar", (d, w) -> redrawAll())
+                        .setCancelable(false)
+                        .show();
+            } else {
+                redrawAll();
+                Toast.makeText(this, "Track muy corto", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
     // ----------------------- Waypoints -----------------------
 
     private void addWaypointAt(GeoPoint p) {
-        final EditText in = new EditText(this);
-        in.setText("WPT " + (store.waypoints.size() + 1));
+        // Paso 1: elegir símbolo táctico
         new AlertDialog.Builder(this)
-                .setTitle("Nuevo waypoint")
+                .setTitle("Símbolo del waypoint")
+                .setItems(Symbols.LABELS, (d, i) -> promptWaypointName(p, Symbols.IDS[i]))
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void promptWaypointName(GeoPoint p, String symbol) {
+        final EditText in = new EditText(this);
+        in.setText(Symbols.label(symbol) + " " + (store.waypoints.size() + 1));
+        new AlertDialog.Builder(this)
+                .setTitle("Nombre del waypoint")
                 .setView(in)
                 .setPositiveButton("Guardar", (d, w) -> {
                     Store.Waypoint wp = new Store.Waypoint(
                             in.getText().toString(), p.getLatitude(), p.getLongitude());
                     wp.alt = p.getAltitude();
+                    wp.symbol = symbol;
                     store.waypoints.add(wp);
                     store.save(this);
                     redrawAll();
@@ -309,14 +349,42 @@ public class MainActivity extends AppCompatActivity {
         }
         List<String> items = new ArrayList<>();
         for (Store.NamedPath p : list)
-            items.add(p.name + "  (" + p.points.size() + " pts)");
+            items.add(p.name + "  ·  " + fmtDist(pathLength(p)) + "  ·  " + p.points.size() + " pts");
         new AlertDialog.Builder(this)
                 .setTitle(kind)
-                .setItems(items.toArray(new String[0]), (d, i) -> {
-                    if (!list.get(i).points.isEmpty())
-                        map.getController().animateTo(list.get(i).points.get(0));
+                .setItems(items.toArray(new String[0]), (d, i) -> pathActions(list.get(i)))
+                .show();
+    }
+
+    private void pathActions(Store.NamedPath p) {
+        new AlertDialog.Builder(this)
+                .setTitle(p.name)
+                .setItems(new String[]{"Ir al inicio", "Borrar"}, (d, i) -> {
+                    if (i == 0) {
+                        if (!p.points.isEmpty()) {
+                            map.getController().animateTo(p.points.get(0));
+                            map.getController().setZoom(14.0);
+                        }
+                    } else {
+                        store.paths.remove(p);
+                        store.save(this);
+                        redrawAll();
+                        Toast.makeText(this, "Eliminado", Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .show();
+    }
+
+    private static double pathLength(Store.NamedPath p) {
+        double m = 0;
+        for (int i = 1; i < p.points.size(); i++)
+            m += p.points.get(i - 1).distanceToAsDouble(p.points.get(i));
+        return m;
+    }
+
+    private static String fmtDist(double m) {
+        return m < 1000 ? String.format(Locale.US, "%.0f m", m)
+                : String.format(Locale.US, "%.2f km", m / 1000);
     }
 
     // ----------------------- Medida -----------------------
@@ -506,13 +574,54 @@ public class MainActivity extends AppCompatActivity {
 
     private void doImport(Uri uri) {
         try (InputStream in = getContentResolver().openInputStream(uri)) {
-            int n = GpxImporter.importGpx(in, store);
+            if (in == null) throw new Exception("no se pudo abrir el archivo");
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int r;
+            while ((r = in.read(buf)) != -1) bos.write(buf, 0, r);
+            byte[] data = bos.toByteArray();
+            String head = new String(data, 0, Math.min(data.length, 512),
+                    StandardCharsets.UTF_8).toLowerCase(Locale.US);
+
+            int n;
+            if (head.contains("<kml")) {
+                n = KmlImporter.importKml(new ByteArrayInputStream(data), store);
+            } else {
+                n = GpxImporter.importGpx(new ByteArrayInputStream(data), store);
+            }
             store.save(this);
+            // encuadrar al primer elemento importado
+            if (!store.paths.isEmpty() && !store.paths.get(store.paths.size() - 1).points.isEmpty()) {
+                map.getController().animateTo(
+                        store.paths.get(store.paths.size() - 1).points.get(0));
+            } else if (!store.waypoints.isEmpty()) {
+                Store.Waypoint w = store.waypoints.get(store.waypoints.size() - 1);
+                map.getController().animateTo(new GeoPoint(w.lat, w.lon));
+            }
             redrawAll();
             Toast.makeText(this, "Importados " + n + " elementos", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
             Toast.makeText(this, "Error al importar: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void handleIncoming(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        Uri uri = null;
+        if (Intent.ACTION_VIEW.equals(action)) {
+            uri = intent.getData();
+        } else if (Intent.ACTION_SEND.equals(action)) {
+            uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+        }
+        if (uri != null) doImport(uri);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIncoming(intent);
     }
 
     private void exportGpx() {
@@ -574,8 +683,11 @@ public class MainActivity extends AppCompatActivity {
             for (Store.Waypoint w : store.waypoints) {
                 Marker m = new Marker(map);
                 m.setPosition(new GeoPoint(w.lat, w.lon));
-                m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-                m.setTitle(w.name);
+                m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
+                m.setTitle(w.name + "  [" + Symbols.label(w.symbol) + "]");
+                try {
+                    m.setIcon(ContextCompat.getDrawable(this, Symbols.drawable(w.symbol)));
+                } catch (Exception ignored) {}
                 map.getOverlays().add(m);
             }
         }

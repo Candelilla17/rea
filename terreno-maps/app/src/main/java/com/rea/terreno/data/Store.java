@@ -21,6 +21,7 @@ public class Store {
     public static class Waypoint {
         public String name;
         public String note;
+        public String symbol = "wpt";
         public double lat, lon, alt;
         public Waypoint() {}
         public Waypoint(String name, double lat, double lon) {
@@ -64,6 +65,7 @@ public class Store {
             for (Waypoint w : waypoints) {
                 JSONObject o = new JSONObject();
                 o.put("name", w.name); o.put("note", w.note == null ? "" : w.note);
+                o.put("symbol", w.symbol == null ? "wpt" : w.symbol);
                 o.put("lat", w.lat); o.put("lon", w.lon); o.put("alt", w.alt);
                 wa.put(o);
             }
@@ -115,6 +117,7 @@ public class Store {
                 JSONObject o = wa.getJSONObject(i);
                 Waypoint w = new Waypoint();
                 w.name = o.optString("name"); w.note = o.optString("note");
+                w.symbol = o.optString("symbol", "wpt");
                 w.lat = o.optDouble("lat"); w.lon = o.optDouble("lon"); w.alt = o.optDouble("alt");
                 waypoints.add(w);
             }

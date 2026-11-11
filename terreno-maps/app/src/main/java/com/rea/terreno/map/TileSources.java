@@ -55,25 +55,38 @@ public final class TileSources {
 
     public static List<ITileSource> all() {
         List<ITileSource> list = new ArrayList<>();
-        // Callejero OSM (keyless)
+        // --- Bases generales (keyless) ---
         list.add(template("OSM Native",
                 "https://tile.openstreetmap.org/{z}/{x}/{y}.png", 19));
-        // Topográfico abierto
         list.add(template("OpenTopoMap",
                 "https://a.tile.opentopomap.org/{z}/{x}/{y}.png", 17));
-        // Satelital Esri (keyless) — orden z/y/x
         list.add(template("Satelital (Esri)",
                 "https://server.arcgisonline.com/ArcGIS/rest/services/"
                         + "World_Imagery/MapServer/tile/{z}/{y}/{x}", 19));
-        // Topográfico USGS (dominio público EE. UU.)
+        list.add(template("Híbrido etiquetas (Esri)",
+                "https://server.arcgisonline.com/ArcGIS/rest/services/"
+                        + "Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", 19));
+        list.add(template("Relieve (Esri Terrain)",
+                "https://server.arcgisonline.com/ArcGIS/rest/services/"
+                        + "World_Terrain_Base/MapServer/tile/{z}/{y}/{x}", 13));
         list.add(template("USGS Topo",
                 "https://basemap.nationalmap.gov/arcgis/rest/services/"
                         + "USGSTopo/MapServer/tile/{z}/{y}/{x}", 16));
-        // Relieve sombreado abierto
-        list.add(template("Relieve (ESRI Terrain)",
-                "https://server.arcgisonline.com/ArcGIS/rest/services/"
-                        + "World_Terrain_Base/MapServer/tile/{z}/{y}/{x}", 13));
-        // Topográfico ruso configurable (tu servidor)
+        list.add(template("CyclOSM",
+                "https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png", 18));
+
+        // --- Topográficos soviéticos (Genshtab) vía nakarte.me ---
+        // Cobertura principal: ex-URSS y, en el caso global, buena parte del mundo.
+        list.add(template("Soviético global (Topomapper)",
+                "https://tiles.nakarte.me/topomapper_v2/{z}/{x}/{y}.jpg", 13));
+        list.add(template("Soviético 1km (Genshtab)",
+                "https://tiles.nakarte.me/topo001m/{z}/{x}/{y}", 17));
+        list.add(template("Soviético 500m",
+                "https://tiles.nakarte.me/topo500/{z}/{x}/{y}", 17));
+        list.add(template("Soviético 250m",
+                "https://tiles.nakarte.me/topo250/{z}/{x}/{y}", 17));
+
+        // --- Slot configurable (tu propio servidor de teselas) ---
         list.add(template("Topográfico ruso (config.)",
                 RUSSIAN_TOPO_TEMPLATE, 15));
         return list;
