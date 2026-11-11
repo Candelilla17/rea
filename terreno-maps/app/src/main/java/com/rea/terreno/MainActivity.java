@@ -182,7 +182,9 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_locate) { centerOnLocation(); return true; }
         if (id == R.id.action_record) { toggleRecording(); return true; }
         if (id == R.id.action_route) { toggleEditPath("route"); return true; }
+        if (id == R.id.action_basemap) { chooseBasemap(); return true; }
         if (id == R.id.action_layers) { manageLayers(); return true; }
+        if (id == R.id.of_goto) { gotoCoordinate(); return true; }
         if (id == R.id.of_waypoint) { addWaypointAt((GeoPoint) map.getMapCenter()); return true; }
         if (id == R.id.of_shape) { toggleEditPath("shape"); return true; }
         if (id == R.id.of_measure) { toggleMeasure(); return true; }
@@ -524,6 +526,58 @@ public class MainActivity extends AppCompatActivity {
                 .setTitle("Preferencias")
                 .setMessage(txt)
                 .setPositiveButton("OK", null)
+                .show();
+    }
+
+    private void gotoCoordinate() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        box.setPadding(pad, pad, pad, 0);
+        final EditText latIn = new EditText(this);
+        latIn.setHint("Latitud (ej. 8.9824)");
+        latIn.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+                | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
+        final EditText lonIn = new EditText(this);
+        lonIn.setHint("Longitud (ej. -79.5199)");
+        lonIn.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+                | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
+        box.addView(latIn);
+        box.addView(lonIn);
+        new AlertDialog.Builder(this)
+                .setTitle("Ir a coordenada")
+                .setMessage("Grados decimales (WGS84).")
+                .setView(box)
+                .setPositiveButton("Ir", (d, w) -> {
+                    try {
+                        double lat = Double.parseDouble(latIn.getText().toString().trim());
+                        double lon = Double.parseDouble(lonIn.getText().toString().trim());
+                        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                            Toast.makeText(this, "Fuera de rango", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        GeoPoint gp = new GeoPoint(lat, lon);
+                        map.getController().animateTo(gp);
+                        map.getController().setZoom(16.0);
+                    } catch (Exception e) {
+                        Toast.makeText(this, "Coordenada inválida", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNeutralButton("Ir y marcar", (d, w) -> {
+                    try {
+                        double lat = Double.parseDouble(latIn.getText().toString().trim());
+                        double lon = Double.parseDouble(lonIn.getText().toString().trim());
+                        GeoPoint gp = new GeoPoint(lat, lon);
+                        map.getController().animateTo(gp);
+                        map.getController().setZoom(16.0);
+                        addWaypointAt(gp);
+                    } catch (Exception e) {
+                        Toast.makeText(this, "Coordenada inválida", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancelar", null)
                 .show();
     }
 

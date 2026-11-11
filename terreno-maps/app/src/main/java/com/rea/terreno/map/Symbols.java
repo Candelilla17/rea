@@ -2,19 +2,28 @@ package com.rea.terreno.map;
 
 import com.rea.terreno.R;
 
-/** Catálogo de símbolos tácticos para waypoints. */
+/** Catálogo de símbolos (militares y ambientales) para waypoints. */
 public final class Symbols {
 
     private Symbols() {}
 
     public static final String[] IDS = {
-            "wpt", "friendly", "hostile", "neutral", "unknown",
-            "hq", "observation", "hazard", "objective"
+            // Genérico
+            "wpt",
+            // Militares / tácticos
+            "friendly", "hostile", "neutral", "unknown",
+            "hq", "observation", "hazard", "objective",
+            // Ambientales / ecológicos
+            "forest", "water", "fire", "fauna",
+            "pollution", "logging", "camp", "protected"
     };
 
     public static final String[] LABELS = {
-            "Waypoint", "Fuerza amiga", "Hostil", "Neutral", "Desconocido",
-            "Puesto de mando", "Observación", "Peligro", "Objetivo"
+            "Waypoint",
+            "Fuerza amiga", "Hostil", "Neutral", "Desconocido",
+            "Puesto de mando", "Observación", "Peligro", "Objetivo",
+            "Bosque", "Agua / río", "Incendio", "Fauna",
+            "Contaminación", "Tala ilegal", "Campamento", "Área protegida"
     };
 
     public static int drawable(String id) {
@@ -28,6 +37,14 @@ public final class Symbols {
             case "observation": return R.drawable.sym_observation;
             case "hazard":      return R.drawable.sym_hazard;
             case "objective":   return R.drawable.sym_objective;
+            case "forest":      return R.drawable.env_forest;
+            case "water":       return R.drawable.env_water;
+            case "fire":        return R.drawable.env_fire;
+            case "fauna":       return R.drawable.env_fauna;
+            case "pollution":   return R.drawable.env_pollution;
+            case "logging":     return R.drawable.env_logging;
+            case "camp":        return R.drawable.env_camp;
+            case "protected":   return R.drawable.env_protected;
             default:            return R.drawable.ic_waypoint;
         }
     }

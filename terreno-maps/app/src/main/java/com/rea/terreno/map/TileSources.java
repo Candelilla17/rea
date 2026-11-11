@@ -5,8 +5,12 @@ import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase;
 import org.osmdroid.tileprovider.tilesource.TileSourcePolicy;
 import org.osmdroid.util.MapTileIndex;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
 /**
  * Catálogo de mapas base SIN clave API.
@@ -53,16 +57,33 @@ public final class TileSources {
     public static final String RUSSIAN_TOPO_TEMPLATE =
             "https://tiles.example.org/russian-topo/{z}/{x}/{y}.png";
 
+    /** Fecha (UTC, ayer) para imágenes satelitales diarias de NASA GIBS. */
+    private static String gibsDate() {
+        Calendar c = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        c.add(Calendar.DAY_OF_YEAR, -1);
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(c.getTime());
+    }
+
     public static List<ITileSource> all() {
         List<ITileSource> list = new ArrayList<>();
+        final String date = gibsDate();
         // --- Bases generales (keyless) ---
         list.add(template("OSM Native",
                 "https://tile.openstreetmap.org/{z}/{x}/{y}.png", 19));
         list.add(template("OpenTopoMap",
                 "https://a.tile.opentopomap.org/{z}/{x}/{y}.png", 17));
-        list.add(template("Satelital (Esri)",
+        list.add(template("Satelital alta res (Esri)",
                 "https://server.arcgisonline.com/ArcGIS/rest/services/"
                         + "World_Imagery/MapServer/tile/{z}/{y}/{x}", 19));
+        // --- Satelital diario casi en tiempo real (NASA GIBS) ---
+        list.add(template("Satélite hoy (MODIS Terra)",
+                "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+                        + "MODIS_Terra_CorrectedReflectance_TrueColor/default/" + date
+                        + "/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg", 9));
+        list.add(template("Satélite hoy (VIIRS)",
+                "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+                        + "VIIRS_SNPP_CorrectedReflectance_TrueColor/default/" + date
+                        + "/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg", 9));
         list.add(template("Híbrido etiquetas (Esri)",
                 "https://server.arcgisonline.com/ArcGIS/rest/services/"
                         + "Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", 19));
