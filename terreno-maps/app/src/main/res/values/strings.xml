@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Terreno Maps</string>
+    <string name="menu_basemap">Elegir mapa</string>
+    <string name="menu_layers">Administrar capas</string>
+    <string name="menu_record">Grabar recorrido</string>
+    <string name="menu_waypoint">Waypoint</string>
+    <string name="menu_route">Ruta</string>
+    <string name="menu_shape">Shape</string>
+    <string name="menu_references">Referencias</string>
+    <string name="menu_messages">Mensajes</string>
+    <string name="menu_export">Exportar GPX</string>
+    <string name="menu_mylocation">Mi ubicación</string>
+</resources>

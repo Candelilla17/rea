@@ -1,0 +1,10 @@
+<resources>
+    <color name="primary">#1B5E20</color>
+    <color name="primary_dark">#003300</color>
+    <color name="accent">#FF6D00</color>
+    <color name="track">#FF3D00</color>
+    <color name="route">#2962FF</color>
+    <color name="shape_fill">#552962FF</color>
+    <color name="white">#FFFFFF</color>
+    <color name="panel_bg">#CC000000</color>
+</resources>
