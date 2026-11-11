@@ -41,3 +41,5 @@ URL de tu propio servicio de teselas de hojas del Estado Mayor / dominio públic
 Respeta las políticas de uso de cada servidor (OSM, OpenTopoMap, Esri, USGS). Para uso
 intensivo o producción, usa tu propio servidor de teselas o un plan adecuado.
 Licencia del código: MIT.
+
+<!-- rebuild 1794431371 -->
