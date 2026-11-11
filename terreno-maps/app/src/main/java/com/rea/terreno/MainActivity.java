@@ -5,26 +5,35 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.text.InputType;
-import android.widget.Button;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.navigation.NavigationView;
 import com.rea.terreno.data.Store;
 import com.rea.terreno.map.Coords;
 import com.rea.terreno.map.TileSources;
 import com.rea.terreno.trip.GpxExporter;
+import com.rea.terreno.trip.GpxImporter;
 import com.rea.terreno.trip.TripRecorder;
 
 import org.osmdroid.config.Configuration;
@@ -47,6 +56,7 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,8 +64,9 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    private enum Mode { NONE, ROUTE, SHAPE, MESSAGE }
+    private enum Mode { NONE, ROUTE, SHAPE, MESSAGE, MEASURE }
 
+    private DrawerLayout drawer;
     private MapView map;
     private TextView refPanel, statusPanel;
     private final Store store = new Store();
@@ -65,15 +76,21 @@ public class MainActivity extends AppCompatActivity {
     private ScaleBarOverlay scaleBar;
     private CompassOverlay compass;
 
-    private Polyline liveTrack;              // recorrido en grabación
-    private Store.NamedPath editingPath;     // ruta/shape en edición
+    private Polyline liveTrack;
+    private Polyline measureLine;
+    private final List<GeoPoint> measurePoints = new ArrayList<>();
+    private Store.NamedPath editingPath;
     private Mode mode = Mode.NONE;
 
-    // visibilidad de capas
     private boolean showWaypoints = true, showPaths = true,
             showMessages = true, showRefs = true;
 
-    private List<ITileSource> sources;
+    private final List<ITileSource> sources = new ArrayList<>(TileSources.all());
+
+    private final ActivityResultLauncher<String[]> importLauncher =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri != null) doImport(uri);
+            });
 
     @Override
     protected void onCreate(Bundle b) {
@@ -85,19 +102,28 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        drawer = findViewById(R.id.drawer);
+        toolbar.setNavigationOnClickListener(v -> drawer.openDrawer(GravityCompat.START));
+
+        NavigationView nav = findViewById(R.id.nav);
+        nav.setNavigationItemSelectedListener(this::onNavItem);
+
         map = findViewById(R.id.map);
         refPanel = findViewById(R.id.refPanel);
         statusPanel = findViewById(R.id.statusPanel);
 
-        sources = TileSources.all();
         map.setTileSource(sources.get(0));
         map.setMultiTouchControls(true);
         map.setTilesScaledToDpi(true);
         map.getController().setZoom(6.0);
-        map.getController().setCenter(new GeoPoint(8.5380, -80.7821)); // Panamá
+        map.getController().setCenter(new GeoPoint(8.5380, -80.7821));
 
         setupOverlays();
-        wireButtons();
+        ((FloatingActionButton) findViewById(R.id.fabTrip))
+                .setOnClickListener(v -> startActivity(new Intent(this, TripmasterActivity.class)));
+
         store.load(this);
         redrawAll();
         requestPerms();
@@ -105,57 +131,78 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupOverlays() {
-        // Mi ubicación
         myLocation = new MyLocationNewOverlay(new GpsMyLocationProvider(this), map);
         myLocation.enableMyLocation();
         map.getOverlays().add(myLocation);
 
-        // Escala
         scaleBar = new ScaleBarOverlay(map);
         scaleBar.setScaleBarOffset(160, 20);
         map.getOverlays().add(scaleBar);
 
-        // Brújula
         compass = new CompassOverlay(this,
                 new InternalCompassOrientationProvider(this), map);
         compass.enableCompass();
         map.getOverlays().add(compass);
 
-        // Recepción de toques para rutas/shapes/mensajes
         MapEventsOverlay events = new MapEventsOverlay(new MapEventsReceiver() {
-            @Override public boolean singleTapConfirmedHelper(GeoPoint p) {
-                return onMapTap(p);
-            }
-            @Override public boolean longPressHelper(GeoPoint p) {
-                addWaypointAt(p);
-                return true;
-            }
+            @Override public boolean singleTapConfirmedHelper(GeoPoint p) { return onMapTap(p); }
+            @Override public boolean longPressHelper(GeoPoint p) { addWaypointAt(p); return true; }
         });
         map.getOverlays().add(0, events);
 
-        // Actualizar referencias al mover el mapa
         map.addMapListener(new MapListener() {
             @Override public boolean onScroll(ScrollEvent e) { updateRefPanel(); return false; }
             @Override public boolean onZoom(ZoomEvent e) { updateRefPanel(); return false; }
         });
     }
 
-    private void wireButtons() {
-        Button rec = findViewById(R.id.btnRecord);
-        rec.setOnClickListener(v -> toggleRecording());
-        ((Button) findViewById(R.id.btnWaypoint))
-                .setOnClickListener(v -> addWaypointAt((GeoPoint) map.getMapCenter()));
-        ((Button) findViewById(R.id.btnRoute))
-                .setOnClickListener(v -> toggleEditPath("route"));
-        ((Button) findViewById(R.id.btnShape))
-                .setOnClickListener(v -> toggleEditPath("shape"));
-        ((Button) findViewById(R.id.btnLocation))
-                .setOnClickListener(v -> centerOnLocation());
-        FloatingActionButton fab = findViewById(R.id.fabMenu);
-        fab.setOnClickListener(this::showMenu);
+    // ----------------------- Toolbar -----------------------
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.toolbar_menu, menu);
+        return true;
     }
 
-    // ----------------------- Grabación de recorridos -----------------------
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_locate) { centerOnLocation(); return true; }
+        if (id == R.id.action_record) { toggleRecording(); return true; }
+        if (id == R.id.action_route) { toggleEditPath("route"); return true; }
+        if (id == R.id.action_layers) { manageLayers(); return true; }
+        if (id == R.id.of_waypoint) { addWaypointAt((GeoPoint) map.getMapCenter()); return true; }
+        if (id == R.id.of_shape) { toggleEditPath("shape"); return true; }
+        if (id == R.id.of_measure) { toggleMeasure(); return true; }
+        if (id == R.id.of_addmap) { addMapDialog(); return true; }
+        if (id == R.id.of_references) { showReferences(); return true; }
+        if (id == R.id.of_import) { importLauncher.launch(new String[]{"*/*"}); return true; }
+        if (id == R.id.of_export) { exportGpx(); return true; }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private boolean onNavItem(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.nav_tripmaster) startActivity(new Intent(this, TripmasterActivity.class));
+        else if (id == R.id.nav_waypoints) showWaypointList();
+        else if (id == R.id.nav_recorridos) showPathList("track");
+        else if (id == R.id.nav_rutas) showPathList("route");
+        else if (id == R.id.nav_shapes) showPathList("shape");
+        else if (id == R.id.nav_basemap) chooseBasemap();
+        else if (id == R.id.nav_layers) manageLayers();
+        else if (id == R.id.nav_messages) showMessages();
+        else if (id == R.id.nav_prefs) showPrefs();
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (drawer.isDrawerOpen(GravityCompat.START)) drawer.closeDrawer(GravityCompat.START);
+        else super.onBackPressed();
+    }
+
+    // ----------------------- Grabación -----------------------
 
     private void toggleRecording() {
         if (!hasLocationPerm()) { requestPerms(); return; }
@@ -186,11 +233,7 @@ public class MainActivity extends AppCompatActivity {
                 store.paths.add(p);
                 store.save(this);
             }
-            // retirar el trazo en vivo para no duplicarlo con el guardado
-            if (liveTrack != null) {
-                map.getOverlays().remove(liveTrack);
-                liveTrack = null;
-            }
+            if (liveTrack != null) { map.getOverlays().remove(liveTrack); liveTrack = null; }
             statusPanel.setVisibility(TextView.GONE);
             redrawAll();
             Toast.makeText(this, "Recorrido guardado", Toast.LENGTH_SHORT).show();
@@ -201,7 +244,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void addWaypointAt(GeoPoint p) {
         final EditText in = new EditText(this);
-        in.setHint("Nombre del waypoint");
         in.setText("WPT " + (store.waypoints.size() + 1));
         new AlertDialog.Builder(this)
                 .setTitle("Nuevo waypoint")
@@ -218,11 +260,28 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    // ----------------------- Rutas y shapes -----------------------
+    private void showWaypointList() {
+        if (store.waypoints.isEmpty()) {
+            Toast.makeText(this, "Sin waypoints", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        List<String> items = new ArrayList<>();
+        for (Store.Waypoint w : store.waypoints)
+            items.add(String.format(Locale.US, "%s (%.4f, %.4f)", w.name, w.lat, w.lon));
+        new AlertDialog.Builder(this)
+                .setTitle("Waypoints")
+                .setItems(items.toArray(new String[0]), (d, i) -> {
+                    Store.Waypoint w = store.waypoints.get(i);
+                    map.getController().animateTo(new GeoPoint(w.lat, w.lon));
+                    map.getController().setZoom(15.0);
+                })
+                .show();
+    }
+
+    // ----------------------- Rutas / shapes / recorridos -----------------------
 
     private void toggleEditPath(String kind) {
         if (editingPath != null && kind.equals(editingPath.kind)) {
-            // finalizar
             if (editingPath.points.size() > 1) {
                 store.paths.add(editingPath);
                 store.save(this);
@@ -230,27 +289,61 @@ public class MainActivity extends AppCompatActivity {
             }
             editingPath = null;
             mode = Mode.NONE;
+            statusPanel.setVisibility(TextView.GONE);
             redrawAll();
             return;
         }
         String label = "route".equals(kind) ? "Ruta" : "Shape";
         editingPath = new Store.NamedPath(label + " " + (count(kind) + 1), kind);
         mode = "route".equals(kind) ? Mode.ROUTE : Mode.SHAPE;
-        showStatus("Toca el mapa para añadir vértices. Pulsa "
-                + ("route".equals(kind) ? "RUTA" : "SHAPE") + " para cerrar.");
+        showStatus("Toca el mapa para añadir vértices. Repite "
+                + ("route".equals(kind) ? "Ruta" : "Shape") + " para cerrar.");
     }
 
-    private boolean onMapTap(GeoPoint p) {
-        if (mode == Mode.ROUTE || mode == Mode.SHAPE) {
-            editingPath.points.add(p);
-            redrawAll();
-            return true;
-        } else if (mode == Mode.MESSAGE) {
-            addMessageAt(p);
-            mode = Mode.NONE;
-            return true;
+    private void showPathList(String kind) {
+        List<Store.NamedPath> list = new ArrayList<>();
+        for (Store.NamedPath p : store.paths) if (kind.equals(p.kind)) list.add(p);
+        if (list.isEmpty()) {
+            Toast.makeText(this, "Sin elementos", Toast.LENGTH_SHORT).show();
+            return;
         }
-        return false;
+        List<String> items = new ArrayList<>();
+        for (Store.NamedPath p : list)
+            items.add(p.name + "  (" + p.points.size() + " pts)");
+        new AlertDialog.Builder(this)
+                .setTitle(kind)
+                .setItems(items.toArray(new String[0]), (d, i) -> {
+                    if (!list.get(i).points.isEmpty())
+                        map.getController().animateTo(list.get(i).points.get(0));
+                })
+                .show();
+    }
+
+    // ----------------------- Medida -----------------------
+
+    private void toggleMeasure() {
+        if (mode == Mode.MEASURE) {
+            mode = Mode.NONE;
+            measurePoints.clear();
+            if (measureLine != null) { map.getOverlays().remove(measureLine); measureLine = null; }
+            statusPanel.setVisibility(TextView.GONE);
+            map.invalidate();
+            return;
+        }
+        mode = Mode.MEASURE;
+        measurePoints.clear();
+        measureLine = new Polyline(map);
+        measureLine.getOutlinePaint().setColor(0xFFFFB300);
+        measureLine.getOutlinePaint().setStrokeWidth(6f);
+        map.getOverlays().add(measureLine);
+        showStatus("Medida: toca puntos. Repite Medida para terminar.");
+    }
+
+    private double measureTotal() {
+        double m = 0;
+        for (int i = 1; i < measurePoints.size(); i++)
+            m += measurePoints.get(i - 1).distanceToAsDouble(measurePoints.get(i));
+        return m;
     }
 
     // ----------------------- Mensajes -----------------------
@@ -273,9 +366,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void showMessages() {
         List<String> items = new ArrayList<>();
-        for (Store.Message m : store.messages) {
+        for (Store.Message m : store.messages)
             items.add(String.format(Locale.US, "%s  (%.4f, %.4f)", m.text, m.lat, m.lon));
-        }
         if (items.isEmpty()) items.add("(sin mensajes)");
         new AlertDialog.Builder(this)
                 .setTitle("Mensajes")
@@ -291,33 +383,44 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    // ----------------------- Menú (FAB) -----------------------
-
-    private void showMenu(android.view.View anchor) {
-        String[] opts = {"Elegir mapa", "Administrar capas", "Referencias",
-                "Mensajes", "Exportar GPX"};
-        new AlertDialog.Builder(this)
-                .setItems(opts, (d, i) -> {
-                    switch (i) {
-                        case 0: chooseBasemap(); break;
-                        case 1: manageLayers(); break;
-                        case 2: showReferences(); break;
-                        case 3: showMessages(); break;
-                        case 4: exportGpx(); break;
-                    }
-                })
-                .show();
-    }
+    // ----------------------- Mapa base / capas / añadir mapa -----------------------
 
     private void chooseBasemap() {
         String[] names = new String[sources.size()];
         for (int i = 0; i < sources.size(); i++) names[i] = sources.get(i).name();
         new AlertDialog.Builder(this)
-                .setTitle("Elegir mapa base")
-                .setItems(names, (d, i) -> {
-                    map.setTileSource(sources.get(i));
+                .setTitle("Elige un mapa")
+                .setItems(names, (d, i) -> { map.setTileSource(sources.get(i)); map.invalidate(); })
+                .show();
+    }
+
+    private void addMapDialog() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        box.setPadding(pad, pad, pad, 0);
+        final EditText name = new EditText(this); name.setHint("Nombre del mapa");
+        final EditText url = new EditText(this);
+        url.setHint("URL de teselas con {z}/{x}/{y}");
+        box.addView(name); box.addView(url);
+        new AlertDialog.Builder(this)
+                .setTitle("Añadir mapa")
+                .setMessage("Servidor de teselas sin clave API (p. ej. tu topográfico ruso).")
+                .setView(box)
+                .setPositiveButton("Añadir", (d, w) -> {
+                    String n = name.getText().toString().trim();
+                    String u = url.getText().toString().trim();
+                    if (n.isEmpty() || !u.contains("{z}")) {
+                        Toast.makeText(this, "URL debe incluir {z}/{x}/{y}", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    ITileSource ts = TileSources.template(n, u, 19);
+                    sources.add(ts);
+                    map.setTileSource(ts);
                     map.invalidate();
+                    Toast.makeText(this, "Mapa añadido", Toast.LENGTH_SHORT).show();
                 })
+                .setNegativeButton("Cancelar", null)
                 .show();
     }
 
@@ -343,6 +446,19 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
+    private void showPrefs() {
+        String txt = "AJMap Pro\nMapas de campo con osmdroid, sin clave API.\n\n"
+                + "Mapa activo: " + map.getTileProvider().getTileSource().name()
+                + "\nWaypoints: " + store.waypoints.size()
+                + "\nRecorridos/rutas/shapes: " + store.paths.size()
+                + "\nMensajes: " + store.messages.size();
+        new AlertDialog.Builder(this)
+                .setTitle("Preferencias")
+                .setMessage(txt)
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
     private void showReferences() {
         GeoPoint c = (GeoPoint) map.getMapCenter();
         String txt = Coords.format(c.getLatitude(), c.getLongitude())
@@ -362,37 +478,69 @@ public class MainActivity extends AppCompatActivity {
                 + String.format(Locale.US, "  z%.1f", map.getZoomLevelDouble()));
     }
 
-    // ----------------------- Exportar -----------------------
+    // ----------------------- Toque del mapa -----------------------
+
+    private boolean onMapTap(GeoPoint p) {
+        if (mode == Mode.ROUTE || mode == Mode.SHAPE) {
+            editingPath.points.add(p);
+            redrawAll();
+            return true;
+        } else if (mode == Mode.MEASURE) {
+            measurePoints.add(p);
+            measureLine.setPoints(measurePoints);
+            double m = measureTotal();
+            showStatus(m < 1000
+                    ? String.format(Locale.US, "Medida: %.0f m", m)
+                    : String.format(Locale.US, "Medida: %.2f km", m / 1000));
+            map.invalidate();
+            return true;
+        } else if (mode == Mode.MESSAGE) {
+            addMessageAt(p);
+            mode = Mode.NONE;
+            return true;
+        }
+        return false;
+    }
+
+    // ----------------------- Importar / exportar -----------------------
+
+    private void doImport(Uri uri) {
+        try (InputStream in = getContentResolver().openInputStream(uri)) {
+            int n = GpxImporter.importGpx(in, store);
+            store.save(this);
+            redrawAll();
+            Toast.makeText(this, "Importados " + n + " elementos", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error al importar: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
 
     private void exportGpx() {
         try {
             File dir = new File(getFilesDir(), "exports");
             if (!dir.exists()) dir.mkdirs();
-            File out = new File(dir, "terreno_" + System.currentTimeMillis() + ".gpx");
+            File out = new File(dir, "ajmap_" + System.currentTimeMillis() + ".gpx");
             try (FileOutputStream fos = new FileOutputStream(out)) {
                 fos.write(GpxExporter.toGpx(store).getBytes(StandardCharsets.UTF_8));
             }
-            android.net.Uri uri = FileProvider.getUriForFile(
-                    this, getPackageName() + ".fileprovider", out);
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", out);
             Intent share = new Intent(Intent.ACTION_SEND);
             share.setType("application/gpx+xml");
             share.putExtra(Intent.EXTRA_STREAM, uri);
             share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(Intent.createChooser(share, "Compartir GPX"));
         } catch (Exception e) {
-            Toast.makeText(this, "Error al exportar: " + e.getMessage(),
-                    Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Error al exportar: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
-    // ----------------------- Dibujo de capas -----------------------
+    // ----------------------- Dibujo -----------------------
 
     private void redrawAll() {
-        // conservar overlays base: events(0), myLocation, scaleBar, compass, liveTrack
         List<org.osmdroid.views.overlay.Overlay> keep = new ArrayList<>();
         for (org.osmdroid.views.overlay.Overlay o : map.getOverlays()) {
             if (o instanceof MapEventsOverlay || o == myLocation || o == scaleBar
-                    || o == compass || o == liveTrack) {
+                    || o == compass || o == liveTrack || o == measureLine) {
                 keep.add(o);
             }
         }
@@ -414,8 +562,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Polyline line = new Polyline(map);
                     line.setPoints(p.points);
-                    int col = "route".equals(p.kind) ? 0xFF2962FF : 0xFFFF3D00;
-                    line.getOutlinePaint().setColor(col);
+                    line.getOutlinePaint().setColor("route".equals(p.kind) ? 0xFF2962FF : 0xFFFF3D00);
                     line.getOutlinePaint().setStrokeWidth(6f);
                     line.setTitle(p.name);
                     map.getOverlays().add(line);
@@ -479,10 +626,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestPerms() {
-        List<String> need = new ArrayList<>();
-        if (!hasLocationPerm()) need.add(Manifest.permission.ACCESS_FINE_LOCATION);
-        if (!need.isEmpty()) {
-            ActivityCompat.requestPermissions(this, need.toArray(new String[0]), 100);
+        if (!hasLocationPerm()) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 100);
         }
     }
 
@@ -492,10 +638,7 @@ public class MainActivity extends AppCompatActivity {
         if (myLocation != null) myLocation.enableMyLocation();
     }
 
-    @Override protected void onResume() {
-        super.onResume();
-        map.onResume();
-    }
+    @Override protected void onResume() { super.onResume(); map.onResume(); }
 
     @Override protected void onPause() {
         super.onPause();

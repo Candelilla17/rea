@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="none">
+        <item android:id="@+id/nav_tripmaster" android:icon="@drawable/ic_dashboard" android:title="@string/nav_tripmaster"/>
+        <item android:id="@+id/nav_waypoints" android:icon="@drawable/ic_waypoint" android:title="@string/nav_waypoints"/>
+        <item android:id="@+id/nav_recorridos" android:icon="@drawable/ic_track" android:title="@string/nav_recorridos"/>
+        <item android:id="@+id/nav_rutas" android:icon="@drawable/ic_route" android:title="@string/nav_rutas"/>
+        <item android:id="@+id/nav_shapes" android:icon="@drawable/ic_shapes" android:title="@string/nav_shapes"/>
+    </group>
+    <item android:title="Mapa">
+        <menu>
+            <item android:id="@+id/nav_basemap" android:icon="@drawable/ic_map" android:title="@string/nav_basemap"/>
+            <item android:id="@+id/nav_layers" android:icon="@drawable/ic_layers" android:title="@string/nav_layers"/>
+            <item android:id="@+id/nav_messages" android:icon="@drawable/ic_messages" android:title="@string/nav_messages"/>
+            <item android:id="@+id/nav_prefs" android:icon="@drawable/ic_settings" android:title="@string/nav_prefs"/>
+        </menu>
+    </item>
+</menu>

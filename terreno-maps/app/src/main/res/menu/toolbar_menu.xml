@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:id="@+id/action_locate" android:icon="@drawable/ic_locate"
+        android:title="@string/act_locate" app:showAsAction="always"/>
+    <item android:id="@+id/action_record" android:icon="@drawable/ic_record"
+        android:title="@string/act_record" app:showAsAction="always"/>
+    <item android:id="@+id/action_route" android:icon="@drawable/ic_route"
+        android:title="@string/act_route" app:showAsAction="always"/>
+    <item android:id="@+id/action_layers" android:icon="@drawable/ic_layers"
+        android:title="@string/act_layers" app:showAsAction="always"/>
+
+    <item android:id="@+id/of_waypoint" android:title="@string/of_waypoint" app:showAsAction="never"/>
+    <item android:id="@+id/of_shape" android:title="@string/of_shape" app:showAsAction="never"/>
+    <item android:id="@+id/of_measure" android:title="@string/of_measure" app:showAsAction="never"/>
+    <item android:id="@+id/of_addmap" android:title="@string/of_addmap" app:showAsAction="never"/>
+    <item android:id="@+id/of_references" android:title="@string/of_references" app:showAsAction="never"/>
+    <item android:id="@+id/of_import" android:title="@string/of_import" app:showAsAction="never"/>
+    <item android:id="@+id/of_export" android:title="@string/of_export" app:showAsAction="never"/>
+</menu>

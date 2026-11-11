@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@color/dash_bg"
+    android:fitsSystemWindows="true">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent" android:layout_height="?attr/actionBarSize"
+        android:background="@color/dash_bg"
+        app:title="Tripmaster" app:titleTextColor="#FFFFFF"
+        app:navigationIcon="@android:drawable/ic_menu_close_clear_cancel"/>
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+        <GridLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:columnCount="2" android:background="@color/dash_line">
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="150dp"
+            android:layout_columnWeight="1" android:layout_margin="1dp"
+            android:background="@color/dash_tile" android:orientation="vertical"
+            android:padding="14dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="VELOCIDAD" style="@style/DashLabel"
+                android:singleLine="true" android:ellipsize="end"/>
+            <TextView android:id="@+id/tvSpeed" android:layout_width="match_parent"
+                android:layout_height="0dp" android:layout_weight="1"
+                android:gravity="center" android:text="0.0" style="@style/DashValue"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="end" android:text="km/h" style="@style/DashUnit"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="150dp"
+            android:layout_columnWeight="1" android:layout_margin="1dp"
+            android:background="@color/dash_tile" android:orientation="vertical"
+            android:padding="14dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="VELOCIDAD PROM." style="@style/DashLabel"
+                android:singleLine="true" android:ellipsize="end"/>
+            <TextView android:id="@+id/tvAvg" android:layout_width="match_parent"
+                android:layout_height="0dp" android:layout_weight="1"
+                android:gravity="center" android:text="--" style="@style/DashValue"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="end" android:text="km/h" style="@style/DashUnit"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="150dp"
+            android:layout_columnWeight="1" android:layout_margin="1dp"
+            android:background="@color/dash_tile" android:orientation="vertical"
+            android:padding="14dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="VELOCIDAD MÁXIMA" style="@style/DashLabel"
+                android:singleLine="true" android:ellipsize="end"/>
+            <TextView android:id="@+id/tvMax" android:layout_width="match_parent"
+                android:layout_height="0dp" android:layout_weight="1"
+                android:gravity="center" android:text="0.0" style="@style/DashValue"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="end" android:text="km/h" style="@style/DashUnit"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="150dp"
+            android:layout_columnWeight="1" android:layout_margin="1dp"
+            android:background="@color/dash_tile" android:orientation="vertical"
+            android:padding="14dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="ODÓMETRO" style="@style/DashLabel"
+                android:singleLine="true" android:ellipsize="end"/>
+            <TextView android:id="@+id/tvOdo" android:layout_width="match_parent"
+                android:layout_height="0dp" android:layout_weight="1"
+                android:gravity="center" android:text="0" style="@style/DashValue"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="end" android:text="m" style="@style/DashUnit"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="150dp"
+            android:layout_columnWeight="1" android:layout_margin="1dp"
+            android:background="@color/dash_tile" android:orientation="vertical"
+            android:padding="14dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="LAT./LON." style="@style/DashLabel"
+                android:singleLine="true" android:ellipsize="end"/>
+            <TextView android:id="@+id/tvLatLon" android:layout_width="match_parent"
+                android:layout_height="0dp" android:layout_weight="1"
+                android:gravity="center" android:text="--" style="@style/DashValue"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="end" android:text="WGS84" style="@style/DashUnit"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="150dp"
+            android:layout_columnWeight="1" android:layout_margin="1dp"
+            android:background="@color/dash_tile" android:orientation="vertical"
+            android:padding="14dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="RUMBO" style="@style/DashLabel"
+                android:singleLine="true" android:ellipsize="end"/>
+            <TextView android:id="@+id/tvHeading" android:layout_width="match_parent"
+                android:layout_height="0dp" android:layout_weight="1"
+                android:gravity="center" android:text="--" style="@style/DashValue"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="end" android:text="°" style="@style/DashUnit"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="150dp"
+            android:layout_columnWeight="1" android:layout_margin="1dp"
+            android:background="@color/dash_tile" android:orientation="vertical"
+            android:padding="14dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="PRECISIÓN" style="@style/DashLabel"
+                android:singleLine="true" android:ellipsize="end"/>
+            <TextView android:id="@+id/tvAcc" android:layout_width="match_parent"
+                android:layout_height="0dp" android:layout_weight="1"
+                android:gravity="center" android:text="--" style="@style/DashValue"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="end" android:text="m" style="@style/DashUnit"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="150dp"
+            android:layout_columnWeight="1" android:layout_margin="1dp"
+            android:background="@color/dash_tile" android:orientation="vertical"
+            android:padding="14dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="ALTITUD" style="@style/DashLabel"
+                android:singleLine="true" android:ellipsize="end"/>
+            <TextView android:id="@+id/tvAlt" android:layout_width="match_parent"
+                android:layout_height="0dp" android:layout_weight="1"
+                android:gravity="center" android:text="--" style="@style/DashValue"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="end" android:text="m" style="@style/DashUnit"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="150dp"
+            android:layout_columnWeight="1" android:layout_margin="1dp"
+            android:background="@color/dash_tile" android:orientation="vertical"
+            android:padding="14dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="TIEMPO" style="@style/DashLabel"
+                android:singleLine="true" android:ellipsize="end"/>
+            <TextView android:id="@+id/tvTime" android:layout_width="match_parent"
+                android:layout_height="0dp" android:layout_weight="1"
+                android:gravity="center" android:text="00:00" style="@style/DashValue"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="end" android:text="mm:ss" style="@style/DashUnit"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="150dp"
+            android:layout_columnWeight="1" android:layout_margin="1dp"
+            android:background="@color/dash_tile" android:orientation="vertical"
+            android:padding="14dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="AMANECER / OCASO" style="@style/DashLabel"
+                android:singleLine="true" android:ellipsize="end"/>
+            <TextView android:id="@+id/tvSun" android:layout_width="match_parent"
+                android:layout_height="0dp" android:layout_weight="1"
+                android:gravity="center" android:text="--" style="@style/DashValue"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="end" android:text="hora" style="@style/DashUnit"/>
+        </LinearLayout>
+        </GridLayout>
+    </ScrollView>
+</LinearLayout>

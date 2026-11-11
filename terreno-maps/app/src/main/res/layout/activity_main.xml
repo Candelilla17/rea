@@ -1,75 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
+<androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawer"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <org.osmdroid.views.MapView
-        android:id="@+id/map"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
-
-    <TextView
-        android:id="@+id/refPanel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
-        android:layout_margin="8dp"
-        android:background="@color/panel_bg"
-        android:padding="6dp"
-        android:textColor="@color/white"
-        android:textSize="11sp"
-        android:fontFamily="monospace"
-        android:text="REA Terreno"/>
-
-    <TextView
-        android:id="@+id/statusPanel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_margin="8dp"
-        android:background="@color/panel_bg"
-        android:padding="6dp"
-        android:textColor="@color/accent"
-        android:textSize="11sp"
-        android:fontFamily="monospace"
-        android:visibility="gone"
-        android:text=""/>
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
 
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_margin="12dp"
-        android:background="@color/panel_bg"
-        android:orientation="horizontal"
-        android:padding="4dp">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <Button android:id="@+id/btnRecord" style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textColor="@color/white" android:text="● REC"/>
-        <Button android:id="@+id/btnWaypoint" style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textColor="@color/white" android:text="WPT"/>
-        <Button android:id="@+id/btnRoute" style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textColor="@color/white" android:text="RUTA"/>
-        <Button android:id="@+id/btnShape" style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textColor="@color/white" android:text="SHAPE"/>
-        <Button android:id="@+id/btnLocation" style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textColor="@color/white" android:text="GPS"/>
+        <com.google.android.material.appbar.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="@color/toolbar_bg"
+                app:title="@string/app_name"
+                app:titleTextColor="@color/toolbar_icon"
+                app:navigationIcon="@drawable/ic_menu"/>
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <org.osmdroid.views.MapView
+                android:id="@+id/map"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+
+            <TextView
+                android:id="@+id/refPanel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|start"
+                android:layout_margin="8dp"
+                android:background="@color/panel_bg"
+                android:padding="6dp"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:text="AJMap Pro"/>
+
+            <TextView
+                android:id="@+id/statusPanel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:background="@color/panel_bg"
+                android:padding="6dp"
+                android:textColor="@color/accent"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:visibility="gone"
+                android:text=""/>
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fabTrip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="16dp"
+                android:src="@drawable/ic_dashboard"
+                app:backgroundTint="@color/brand"
+                app:tint="@color/white"/>
+        </FrameLayout>
     </LinearLayout>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabMenu"
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/nav"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:src="@android:drawable/ic_menu_more"
-        app:tint="@color/white"/>
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:fitsSystemWindows="true"
+        app:headerLayout="@layout/nav_header"
+        app:menu="@menu/drawer_menu"/>
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

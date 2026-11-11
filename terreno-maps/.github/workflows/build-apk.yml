@@ -8,9 +8,6 @@ on:
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,13 +24,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Stage APK
+      - name: Rename APK
         run: |
           mkdir -p out
           cp app/build/outputs/apk/debug/app-debug.apk out/TerrenoMaps-debug.apk
@@ -44,11 +44,3 @@ jobs:
           name: TerrenoMaps-debug-apk
           path: terreno-maps/out/TerrenoMaps-debug.apk
           if-no-files-found: error
-
-      - name: Publish APK to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: terreno-maps-latest
-          name: Terreno Maps (último build)
-          body: APK de depuración instalable. Mapas sin clave API.
-          files: terreno-maps/out/TerrenoMaps-debug.apk

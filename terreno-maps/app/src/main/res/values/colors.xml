@@ -1,10 +1,22 @@
 <resources>
-    <color name="primary">#1B5E20</color>
-    <color name="primary_dark">#003300</color>
+    <color name="brand">#0F6E3F</color>
+    <color name="brand_dark">#0A4D2C</color>
     <color name="accent">#FF6D00</color>
+    <color name="toolbar_bg">#FFFFFF</color>
+    <color name="toolbar_icon">#1A1A1A</color>
     <color name="track">#FF3D00</color>
     <color name="route">#2962FF</color>
+    <color name="shape_line">#2962FF</color>
     <color name="shape_fill">#552962FF</color>
+    <color name="measure">#FFB300</color>
     <color name="white">#FFFFFF</color>
-    <color name="panel_bg">#CC000000</color>
+    <color name="panel_bg">#CC101418</color>
+    <color name="dash_bg">#0E0E10</color>
+    <color name="dash_tile">#17181C</color>
+    <color name="dash_line">#2A2B30</color>
+    <color name="dash_value">#FFFFFF</color>
+    <color name="dash_label">#C8CCD2</color>
+    <color name="dash_unit">#8A9099</color>
+    <color name="dash_accent">#FF6D00</color>
+    <color name="nav_header">#0F6E3F</color>
 </resources>

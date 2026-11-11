@@ -1,7 +1,29 @@
 <resources>
-    <style name="Theme.Terreno" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/primary</item>
-        <item name="colorPrimaryDark">@color/primary_dark</item>
+    <style name="Theme.AJMap" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand</item>
+        <item name="colorPrimaryDark">@color/brand_dark</item>
         <item name="colorSecondary">@color/accent</item>
+        <item name="android:statusBarColor">@color/brand_dark</item>
+    </style>
+
+    <style name="Theme.AJMap.Dash" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="android:windowBackground">@color/dash_bg</item>
+        <item name="android:statusBarColor">@color/dash_bg</item>
+    </style>
+
+    <style name="DashValue">
+        <item name="android:textColor">@color/dash_value</item>
+        <item name="android:textSize">34sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+    </style>
+    <style name="DashLabel">
+        <item name="android:textColor">@color/dash_label</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+    <style name="DashUnit">
+        <item name="android:textColor">@color/dash_unit</item>
+        <item name="android:textSize">12sp</item>
     </style>
 </resources>

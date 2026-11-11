@@ -1,13 +1,26 @@
 <resources>
-    <string name="app_name">Terreno Maps</string>
-    <string name="menu_basemap">Elegir mapa</string>
-    <string name="menu_layers">Administrar capas</string>
-    <string name="menu_record">Grabar recorrido</string>
-    <string name="menu_waypoint">Waypoint</string>
-    <string name="menu_route">Ruta</string>
-    <string name="menu_shape">Shape</string>
-    <string name="menu_references">Referencias</string>
-    <string name="menu_messages">Mensajes</string>
-    <string name="menu_export">Exportar GPX</string>
-    <string name="menu_mylocation">Mi ubicación</string>
+    <string name="app_name">AJMap Pro</string>
+    <string name="nav_tripmaster">Tripmaster</string>
+    <string name="nav_waypoints">Waypoints</string>
+    <string name="nav_recorridos">Recorridos</string>
+    <string name="nav_rutas">Rutas</string>
+    <string name="nav_shapes">Shapes</string>
+    <string name="nav_basemap">Elige un mapa</string>
+    <string name="nav_layers">Administrar capas</string>
+    <string name="nav_prefs">Preferencias</string>
+    <string name="nav_messages">Mensajes</string>
+    <string name="act_locate">Mi ubicación</string>
+    <string name="act_record">Grabar</string>
+    <string name="act_route">Ruta</string>
+    <string name="act_layers">Capas</string>
+    <string name="of_waypoint">Añadir waypoint</string>
+    <string name="of_route">Nueva ruta</string>
+    <string name="of_shape">Nuevo shape</string>
+    <string name="of_measure">Medida</string>
+    <string name="of_addmap">Añadir mapa</string>
+    <string name="of_import">Importar GPX</string>
+    <string name="of_export">Exportar GPX</string>
+    <string name="of_references">Referencias</string>
+    <string name="drawer_open">Abrir menú</string>
+    <string name="drawer_close">Cerrar menú</string>
 </resources>
