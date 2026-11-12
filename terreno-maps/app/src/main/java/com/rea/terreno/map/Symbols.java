@@ -15,7 +15,10 @@ public final class Symbols {
             "hq", "observation", "hazard", "objective",
             // Ambientales / ecológicos
             "forest", "water", "fire", "fauna",
-            "pollution", "logging", "camp", "protected"
+            "pollution", "logging", "camp", "protected",
+            // OTAN / NATO (APP-6)
+            "nato_friendly", "nato_hostile", "nato_neutral",
+            "nato_unknown", "nato_infantry", "nato_armor"
     };
 
     public static final String[] LABELS = {
@@ -23,7 +26,9 @@ public final class Symbols {
             "Fuerza amiga", "Hostil", "Neutral", "Desconocido",
             "Puesto de mando", "Observación", "Peligro", "Objetivo",
             "Bosque", "Agua / río", "Incendio", "Fauna",
-            "Contaminación", "Tala ilegal", "Campamento", "Área protegida"
+            "Contaminación", "Tala ilegal", "Campamento", "Área protegida",
+            "OTAN: Amiga", "OTAN: Hostil", "OTAN: Neutral",
+            "OTAN: Desconocido", "OTAN: Infantería", "OTAN: Blindado"
     };
 
     public static int drawable(String id) {
@@ -45,6 +50,12 @@ public final class Symbols {
             case "logging":     return R.drawable.env_logging;
             case "camp":        return R.drawable.env_camp;
             case "protected":   return R.drawable.env_protected;
+            case "nato_friendly": return R.drawable.nato_friendly;
+            case "nato_hostile":  return R.drawable.nato_hostile;
+            case "nato_neutral":  return R.drawable.nato_neutral;
+            case "nato_unknown":  return R.drawable.nato_unknown;
+            case "nato_infantry": return R.drawable.nato_infantry;
+            case "nato_armor":    return R.drawable.nato_armor;
             default:            return R.drawable.ic_waypoint;
         }
     }

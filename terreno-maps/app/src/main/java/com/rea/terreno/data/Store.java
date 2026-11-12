@@ -49,9 +49,23 @@ public class Store {
         }
     }
 
+    /** Reporte de vía estilo Waze (local). */
+    public static class Report {
+        public String category; // ver Reports
+        public String note;
+        public double lat, lon;
+        public long ts;
+        public Report() {}
+        public Report(String category, double lat, double lon) {
+            this.category = category; this.lat = lat; this.lon = lon;
+            this.ts = System.currentTimeMillis();
+        }
+    }
+
     public final List<Waypoint> waypoints = new ArrayList<>();
     public final List<NamedPath> paths = new ArrayList<>();
     public final List<Message> messages = new ArrayList<>();
+    public final List<Report> reports = new ArrayList<>();
 
     private static File file(Context c) {
         return new File(c.getFilesDir(), "proyecto.json");
@@ -94,6 +108,15 @@ public class Store {
             }
             root.put("messages", ma);
 
+            JSONArray ra = new JSONArray();
+            for (Report rp : reports) {
+                JSONObject o = new JSONObject();
+                o.put("category", rp.category); o.put("note", rp.note == null ? "" : rp.note);
+                o.put("lat", rp.lat); o.put("lon", rp.lon); o.put("ts", rp.ts);
+                ra.put(o);
+            }
+            root.put("reports", ra);
+
             try (FileOutputStream fos = new FileOutputStream(file(c))) {
                 fos.write(root.toString(2).getBytes(StandardCharsets.UTF_8));
             }
@@ -101,7 +124,7 @@ public class Store {
     }
 
     public void load(Context c) {
-        waypoints.clear(); paths.clear(); messages.clear();
+        waypoints.clear(); paths.clear(); messages.clear(); reports.clear();
         File f = file(c);
         if (!f.exists()) return;
         try {
@@ -142,6 +165,15 @@ public class Store {
                 m.text = o.optString("text"); m.lat = o.optDouble("lat");
                 m.lon = o.optDouble("lon"); m.ts = o.optLong("ts");
                 messages.add(m);
+            }
+
+            JSONArray ra = root.optJSONArray("reports");
+            if (ra != null) for (int i = 0; i < ra.length(); i++) {
+                JSONObject o = ra.getJSONObject(i);
+                Report rp = new Report();
+                rp.category = o.optString("category"); rp.note = o.optString("note");
+                rp.lat = o.optDouble("lat"); rp.lon = o.optDouble("lon"); rp.ts = o.optLong("ts");
+                reports.add(rp);
             }
         } catch (Exception ignored) {}
     }

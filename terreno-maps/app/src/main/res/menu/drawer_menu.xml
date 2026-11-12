@@ -6,6 +6,8 @@
         <item android:id="@+id/nav_recorridos" android:icon="@drawable/ic_track" android:title="@string/nav_recorridos"/>
         <item android:id="@+id/nav_rutas" android:icon="@drawable/ic_route" android:title="@string/nav_rutas"/>
         <item android:id="@+id/nav_shapes" android:icon="@drawable/ic_shapes" android:title="@string/nav_shapes"/>
+        <item android:id="@+id/nav_reports" android:icon="@drawable/ic_report" android:title="Reportes de vía"/>
+        <item android:id="@+id/nav_simbologia" android:icon="@drawable/ic_layers" android:title="Simbología (verificador)"/>
     </group>
     <item android:title="Mapa">
         <menu>

@@ -31,6 +31,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.rea.terreno.data.Store;
 import com.rea.terreno.map.Coords;
+import com.rea.terreno.map.Reports;
 import com.rea.terreno.map.Symbols;
 import com.rea.terreno.map.TileSources;
 import com.rea.terreno.trip.GpxExporter;
@@ -39,6 +40,8 @@ import com.rea.terreno.trip.KmlImporter;
 import com.rea.terreno.trip.TripRecorder;
 
 import org.osmdroid.config.Configuration;
+import org.osmdroid.tileprovider.cachemanager.CacheManager;
+import org.osmdroid.util.BoundingBox;
 import org.osmdroid.events.MapEventsReceiver;
 import org.osmdroid.events.MapListener;
 import org.osmdroid.events.ScrollEvent;
@@ -180,7 +183,11 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_locate) { centerOnLocation(); return true; }
+        if (id == R.id.action_refresh) { refreshMap(); return true; }
         if (id == R.id.action_record) { toggleRecording(); return true; }
+        if (id == R.id.of_report) { addReportFlow(); return true; }
+        if (id == R.id.of_offline) { downloadOffline(); return true; }
+        if (id == R.id.of_deltrack) { deleteTracksDialog(); return true; }
         if (id == R.id.action_route) { toggleEditPath("route"); return true; }
         if (id == R.id.action_basemap) { chooseBasemap(); return true; }
         if (id == R.id.action_layers) { manageLayers(); return true; }
@@ -202,6 +209,8 @@ public class MainActivity extends AppCompatActivity {
         else if (id == R.id.nav_recorridos) showPathList("track");
         else if (id == R.id.nav_rutas) showPathList("route");
         else if (id == R.id.nav_shapes) showPathList("shape");
+        else if (id == R.id.nav_reports) addReportFlow();
+        else if (id == R.id.nav_simbologia) startActivity(new Intent(this, SimbologiaActivity.class));
         else if (id == R.id.nav_basemap) chooseBasemap();
         else if (id == R.id.nav_layers) manageLayers();
         else if (id == R.id.nav_messages) showMessages();
@@ -465,30 +474,65 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addMapDialog() {
+        final String[] opts = {
+                "ArcGIS: NatGeo", "ArcGIS: Ocean", "ArcGIS: Topo", "ArcGIS: Calles",
+                "ArcGIS: Imagery Clarity", "Google (pega tu URL con tu clave)",
+                "Apple Maps (info)", "Personalizado (URL de teselas)"
+        };
+        new AlertDialog.Builder(this)
+                .setTitle("Añadir mapa")
+                .setItems(opts, (d, i) -> {
+                    String base = "https://server.arcgisonline.com/ArcGIS/rest/services/";
+                    switch (i) {
+                        case 0: addPreset("ArcGIS NatGeo", base + "NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", 16); break;
+                        case 1: addPreset("ArcGIS Ocean", base + "Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}", 13); break;
+                        case 2: addPreset("ArcGIS Topo", base + "World_Topo_Map/MapServer/tile/{z}/{y}/{x}", 19); break;
+                        case 3: addPreset("ArcGIS Calles", base + "World_Street_Map/MapServer/tile/{z}/{y}/{x}", 19); break;
+                        case 4: addPreset("ArcGIS Imagery",
+                                "https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", 19); break;
+                        case 5: customMapDialog("Google",
+                                "Pega la URL de teselas de tu cuenta de Google (Map Tiles API) "
+                                        + "con tu clave. Usar tiles de Google requiere tu propia clave y aceptar sus términos."); break;
+                        case 6: new AlertDialog.Builder(this).setTitle("Apple Maps")
+                                .setMessage("Apple Maps no ofrece un servidor de teselas público: solo funciona "
+                                        + "con su SDK (MapKit) y tokens de Apple, así que no puede añadirse como capa aquí.")
+                                .setPositiveButton("OK", null).show(); break;
+                        default: customMapDialog("Personalizado",
+                                "Servidor de teselas con {z}/{x}/{y} (sin clave, o el que tengas autorizado)."); break;
+                    }
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void addPreset(String name, String url, int maxZoom) {
+        ITileSource ts = TileSources.template(name, url, maxZoom);
+        sources.add(ts);
+        map.setTileSource(ts);
+        map.invalidate();
+        Toast.makeText(this, name + " añadido", Toast.LENGTH_SHORT).show();
+    }
+
+    private void customMapDialog(String defName, String note) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         int pad = (int) (16 * getResources().getDisplayMetrics().density);
         box.setPadding(pad, pad, pad, 0);
-        final EditText name = new EditText(this); name.setHint("Nombre del mapa");
-        final EditText url = new EditText(this);
-        url.setHint("URL de teselas con {z}/{x}/{y}");
+        final EditText name = new EditText(this); name.setHint("Nombre del mapa"); name.setText(defName);
+        final EditText url = new EditText(this); url.setHint("URL con {z}/{x}/{y}");
         box.addView(name); box.addView(url);
         new AlertDialog.Builder(this)
                 .setTitle("Añadir mapa")
-                .setMessage("Servidor de teselas sin clave API (p. ej. tu topográfico ruso).")
+                .setMessage(note)
                 .setView(box)
                 .setPositiveButton("Añadir", (d, w) -> {
                     String n = name.getText().toString().trim();
                     String u = url.getText().toString().trim();
                     if (n.isEmpty() || !u.contains("{z}")) {
-                        Toast.makeText(this, "URL debe incluir {z}/{x}/{y}", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "La URL debe incluir {z}/{x}/{y}", Toast.LENGTH_LONG).show();
                         return;
                     }
-                    ITileSource ts = TileSources.template(n, u, 19);
-                    sources.add(ts);
-                    map.setTileSource(ts);
-                    map.invalidate();
-                    Toast.makeText(this, "Mapa añadido", Toast.LENGTH_SHORT).show();
+                    addPreset(n, u, 19);
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -697,6 +741,115 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // ----------------------- Actualizar / reportes / offline -----------------------
+
+    private void refreshMap() {
+        try { map.getTileProvider().clearTileCache(); } catch (Exception ignored) {}
+        store.load(this);
+        redrawAll();
+        map.invalidate();
+        Toast.makeText(this, "Mapa actualizado", Toast.LENGTH_SHORT).show();
+    }
+
+    private void addReportFlow() {
+        new AlertDialog.Builder(this)
+                .setTitle("Reporte de vía")
+                .setItems(Reports.LABELS, (d, i) -> {
+                    GeoPoint c = (GeoPoint) map.getMapCenter();
+                    store.reports.add(new Store.Report(Reports.IDS[i], c.getLatitude(), c.getLongitude()));
+                    store.save(this);
+                    redrawAll();
+                    Toast.makeText(this, Reports.LABELS[i] + " reportado", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void deleteTracksDialog() {
+        List<Store.NamedPath> tracks = new ArrayList<>();
+        for (Store.NamedPath p : store.paths) if ("track".equals(p.kind)) tracks.add(p);
+        if (tracks.isEmpty()) {
+            Toast.makeText(this, "No hay tracks", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] names = new String[tracks.size()];
+        for (int i = 0; i < tracks.size(); i++)
+            names[i] = tracks.get(i).name + "  ·  " + fmtDist(pathLength(tracks.get(i)));
+        new AlertDialog.Builder(this)
+                .setTitle("Borrar track")
+                .setItems(names, (d, i) -> {
+                    Store.NamedPath t = tracks.get(i);
+                    new AlertDialog.Builder(this)
+                            .setMessage("¿Borrar \"" + t.name + "\"?")
+                            .setPositiveButton("Borrar", (dd, w) -> {
+                                store.paths.remove(t);
+                                store.save(this);
+                                redrawAll();
+                                Toast.makeText(this, "Track borrado", Toast.LENGTH_SHORT).show();
+                            })
+                            .setNegativeButton("Cancelar", null)
+                            .show();
+                })
+                .setNeutralButton("Borrar TODOS", (d, w) ->
+                    new AlertDialog.Builder(this)
+                            .setMessage("¿Borrar los " + tracks.size() + " tracks?")
+                            .setPositiveButton("Borrar todos", (dd, ww) -> {
+                                store.paths.removeAll(tracks);
+                                store.save(this);
+                                redrawAll();
+                                Toast.makeText(this, "Tracks borrados", Toast.LENGTH_SHORT).show();
+                            })
+                            .setNegativeButton("Cancelar", null)
+                            .show())
+                .setNegativeButton("Cerrar", null)
+                .show();
+    }
+
+    private void downloadOffline() {
+        final int zmin = (int) Math.floor(map.getZoomLevelDouble());
+        final int zmax = Math.min(zmin + 3, 19);
+        final BoundingBox bb = map.getBoundingBox();
+        new AlertDialog.Builder(this)
+                .setTitle("Descargar área offline")
+                .setMessage("Guarda las teselas del área visible (zoom " + zmin + "–" + zmax
+                        + ") del mapa actual para usarlo sin datos.")
+                .setPositiveButton("Descargar", (d, w) -> {
+                    CacheManager cm = new CacheManager(map);
+                    cm.downloadAreaAsync(this, bb, zmin, zmax,
+                            new CacheManager.CacheManagerCallback() {
+                                @Override public void onTaskComplete() {
+                                    Toast.makeText(MainActivity.this,
+                                            "Área guardada para uso offline", Toast.LENGTH_LONG).show();
+                                }
+                                @Override public void onTaskFailed(int errors) {
+                                    Toast.makeText(MainActivity.this,
+                                            "Descarga con " + errors + " errores", Toast.LENGTH_LONG).show();
+                                }
+                                @Override public void updateProgress(int progress, int currentZoomLevel,
+                                                                     int zoomMin, int zoomMax) {}
+                                @Override public void downloadStarted() {
+                                    Toast.makeText(MainActivity.this,
+                                            "Descargando teselas…", Toast.LENGTH_SHORT).show();
+                                }
+                                @Override public void setPossibleTilesInArea(int total) {
+                                    Toast.makeText(MainActivity.this,
+                                            total + " teselas a guardar", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private static String ageText(long ts) {
+        long min = (System.currentTimeMillis() - ts) / 60000;
+        if (min < 1) return "ahora";
+        if (min < 60) return min + " min";
+        long h = min / 60;
+        if (h < 24) return h + " h";
+        return (h / 24) + " d";
+    }
+
     // ----------------------- Dibujo -----------------------
 
     private void redrawAll() {
@@ -754,6 +907,17 @@ public class MainActivity extends AppCompatActivity {
                 m.setTitle("✉ " + msg.text);
                 map.getOverlays().add(m);
             }
+        }
+
+        for (Store.Report rp : store.reports) {
+            Marker m = new Marker(map);
+            m.setPosition(new GeoPoint(rp.lat, rp.lon));
+            m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
+            m.setTitle(Reports.label(rp.category) + "  ·  " + ageText(rp.ts));
+            try {
+                m.setIcon(ContextCompat.getDrawable(this, Reports.drawable(rp.category)));
+            } catch (Exception ignored) {}
+            map.getOverlays().add(m);
         }
         map.invalidate();
     }
